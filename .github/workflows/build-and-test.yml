@@ -1,19 +1,83 @@
-name: test
+# name: test
 
+# on: pull_request
+
+# jobs:
+#   test:
+#     runs-on: ubuntu-latest
+#     steps:
+#     - uses: actions/checkout@v4
+#     - name: Install poetry
+#       run: pipx install poetry
+#     - uses: actions/setup-python@v5
+#       id: setup-python
+#       with:
+#         python-version: '3.10'
+#         cache: 'poetry'
+#     - run: echo '${{ steps.setup-python.outputs.cache-hit }}' # true if cache-hit occurred on the primary key
+#     - run: poetry install
+#     - run: poetry run pytest
+
+
+#  Version 2
+name: test
 on: pull_request
 
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v4
-    - name: Install poetry
-      run: pipx install poetry
-    - uses: actions/setup-python@v5
-      id: setup-python
-      with:
-        python-version: '3.10'
-        cache: 'poetry'
-    - run: echo '${{ steps.setup-python.outputs.cache-hit }}' # true if cache-hit occurred on the primary key
-    - run: poetry install
-    - run: poetry run pytest
+      # Step 1: Check out the repository
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Python
+      - name: Set up Python
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Step 3: Install Poetry
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          virtualenvs-path: .venv
+          installer-parallel: true
+
+      # Step 4: Load cached virtual environment
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-
+            venv-${{ runner.os }}-
+
+      # Step 5: Debug cache key (optional for checking if cache is being used)
+      - name: Debug cache key
+        run: echo "Cache key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}"
+
+      # Step 6: Install dependencies if cache not found
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+
+      # Step 7: Install the project itself
+      - name: Install project
+        run: poetry install --no-interaction
+
+      # Step 8: Verify the contents of .venv (optional, useful for debugging)
+      - name: List files in .venv
+        run: ls -la .venv
+
+      # Step 9: Run tests using pytest
+      - name: Run tests
+        run: |
+          source .venv/bin/activate
+          pytest tests/
