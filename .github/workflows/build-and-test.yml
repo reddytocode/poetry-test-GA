@@ -61,7 +61,8 @@ jobs:
 
       # Step 5: Debug cache key (optional for checking if cache is being used)
       - name: Debug cache key
-        run: echo "Cache key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}"
+        run: |
+          echo "Cache key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}"
 
       # Step 6: Install dependencies if cache not found
       - name: Install dependencies
